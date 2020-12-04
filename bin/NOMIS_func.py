@@ -375,83 +375,85 @@ def get_FS_stats(csv, path_FS, outputpath, current_path, atlaslist, fsfilelist, 
     
     for f in fsfilelist:
         if verbose == 'on': print(f)
-        FSdata = pd.read_csv(outputpath + '/raw_scores/' + f, index_col=0)
-        FSdata.columns = FSdata.columns.str.lower()
-        # remove rows with non-numeric values
-        FSdata.replace('--', np.nan, inplace=True)
-        try: 
-            for x in ['3rd-ventricle', 'left-inf-lat-vent', 'left-lateral-ventricle', 'right-inf-lat-vent', 'right-lateral-ventricle', 'ventricles']:
-                FSdata[x] = np.log10(FSdata[x])
-        except: pass
-        region_list = fslist[f].dropna()
-        # remove non pertinent variables
-        suffix_drop = ['curvind', 'foldind', 'gauscurv', 'numvert', 'meancurv', 'thickstd']
-        drop_list = [x for x in region_list.tolist() if x.endswith(tuple(suffix_drop))]
-        region_list = [x for x in region_list.tolist() if x not in drop_list]
-    
-        # match sociodemo with FS outpout file
-        data2 = pd.merge(data, FSdata, how='inner', left_index=True, right_index=True, suffixes=('', '_y'))
-        data2.drop(data2.filter(regex='_y$').columns.tolist(),axis=1, inplace=True)
-        # add CNR regions
-        if any(x in f for x  in ['aseg', 'exvivo', 'wm', 'brainstem', 'hpcsub']) == False:
-            if 'pialDKT' in f : ff = f.replace('pialDKT', 'DKTatlas')
-            else: ff = f.replace('.pial', '')
-            CNRdata = pd.read_csv(outputpath + 'CNR/' + ff, index_col=0, na_values=['--'])
-            
-            data2 = pd.merge(data2, CNRdata, how='inner', left_index=True, right_index=True, suffixes=('', '_y'))
-            data2.drop(data2.filter(regex='_y$').columns.tolist(),axis=1, inplace=True)
-        # add totalgray CNR
-        CNRdata2 = pd.read_csv(outputpath + 'CNR/aseg.csv', index_col=0)
-        column_list = [x for x in CNRdata2.columns if x.endswith('_cnr')]
-        CNRdata2 = CNRdata2[column_list]
-        data2 = pd.merge(data2, CNRdata2, how='inner', left_index=True, right_index=True)
-        pred_data = data2[region_list]
-        z_data = data2[region_list]
-        #region_ageall = pd.DataFrame()
-        model_path = current_path + '/bin/models/' 
-        # add region volume to each model
-        for var in region_list:
-            data3 = data2[data2[var].notna()]
-            cnr = '_'.join(var.split('_')[:-1]) + '_cnr'
-            if cnr not in data3.columns: cnr = 'totalgrayvol_cnr'
-            if var in ['left_whitesurfarea','left_meanthickness', 'left_pialsurfarea']: cnr = 'lhcortexvol_cnr'
-            if var in ['right_whitesurfarea','right_meanthickness', 'right_pialsurfarea']: cnr = 'rhcortexvol_cnr'
-            #if f == 'brainstem.csv': cnr = 'brain-stem_cnr'
-            if f == 'lhpcsub.csv': cnr = 'left-hippocampus_cnr'
-            if f == 'rhpcsub.csv': cnr = 'right-hippocampus_cnr'
-            
-            # center age and etiv
-            meanCNR = pd.read_csv(model_path + f + '/CNR_regions/' + var + '.csv')
-            data3['cnr'] = data3[cnr] - meanCNR.iloc[0,0]
-            # center volume and compute squared/cubed and/or interactions with CNR region
-            data3['cnr2'] = data3['cnr']*data3['cnr'] 
-            data3['cnr3'] = data3['cnr']*data3['cnr']*data3['cnr']
-            #print(var)
-            mse = pd.read_csv(model_path + f + '/Models/' + var + '_mse.csv', index_col=None, header=None)
-            mse = mse.loc[0,0]
-            loaded_model = pickle.load(open(model_path + f + '/Models/' + var + '.sav', 'rb'))
-            pred_list = pd.Series(pd.read_csv(model_path + f + '/Models/' + var + '.csv').columns)
-            x_select = data3.copy()
-            x_select = x_select.loc[:,pred_list]    
-            pred = loaded_model.predict(x_select)
-            pred = pd.DataFrame(pred, columns=[str(var) + '_pred']).set_index(x_select.index)
-            # add to dataset 
-            pred_data = pd.merge(pred_data, pred, how='outer', left_index=True, right_index=True)
-            # compute z scores
-            z_data[str(var) + '_z'] = (pred_data[var] - pred_data[str(var) + '_pred']) / np.sqrt(mse)
+        try:
+            FSdata = pd.read_csv(outputpath + '/raw_scores/' + f, index_col=0)
+            FSdata.columns = FSdata.columns.str.lower()
+            # remove rows with non-numeric values
+            FSdata.replace('--', np.nan, inplace=True)
+            try: 
+                for x in ['3rd-ventricle', 'left-inf-lat-vent', 'left-lateral-ventricle', 'right-inf-lat-vent', 'right-lateral-ventricle', 'ventricles']:
+                    FSdata[x] = np.log10(FSdata[x])
+            except: pass
+            region_list = fslist[f].dropna()
+            # remove non pertinent variables
+            suffix_drop = ['curvind', 'foldind', 'gauscurv', 'numvert', 'meancurv', 'thickstd']
+            drop_list = [x for x in region_list.tolist() if x.endswith(tuple(suffix_drop))]
+            region_list = [x for x in region_list.tolist() if x not in drop_list]
         
-           
-        z_data = z_data.drop(labels=region_list, axis=1)
-        z_data.columns = z_data.columns.str.replace(r'_z$', '', regex=True)
-        z_data.to_csv(outputpath + 'normative_z_scores/' + f)
-        pred_data = pred_data.drop(labels=region_list, axis=1)
-        pred_data.columns = pred_data.columns.str.replace(r'_z$', '', regex=True)
-        #pred_data.to_csv(outputpath + 'pred_scores/' + f)
-        if verbose == 'on': print('Normative Z scores for ' + f + ' saved in ', outputpath + 'normative_z_scores/')
+            # match sociodemo with FS outpout file
+            data2 = pd.merge(data, FSdata, how='inner', left_index=True, right_index=True, suffixes=('', '_y'))
+            data2.drop(data2.filter(regex='_y$').columns.tolist(),axis=1, inplace=True)
+            # add CNR regions
+            if any(x in f for x  in ['aseg', 'exvivo', 'wm', 'brainstem', 'hpcsub']) == False:
+                if 'pialDKT' in f : ff = f.replace('pialDKT', 'DKTatlas')
+                else: ff = f.replace('.pial', '')
+                CNRdata = pd.read_csv(outputpath + 'CNR/' + ff, index_col=0, na_values=['--'])
+                
+                data2 = pd.merge(data2, CNRdata, how='inner', left_index=True, right_index=True, suffixes=('', '_y'))
+                data2.drop(data2.filter(regex='_y$').columns.tolist(),axis=1, inplace=True)
+            # add totalgray CNR
+            CNRdata2 = pd.read_csv(outputpath + 'CNR/aseg.csv', index_col=0)
+            column_list = [x for x in CNRdata2.columns if x.endswith('_cnr')]
+            CNRdata2 = CNRdata2[column_list]
+            data2 = pd.merge(data2, CNRdata2, how='inner', left_index=True, right_index=True)
+            pred_data = data2[region_list]
+            z_data = data2[region_list]
+            #region_ageall = pd.DataFrame()
+            model_path = current_path + '/bin/models/' 
+            # add region volume to each model
+            for var in region_list:
+                data3 = data2[data2[var].notna()]
+                cnr = '_'.join(var.split('_')[:-1]) + '_cnr'
+                if cnr not in data3.columns: cnr = 'totalgrayvol_cnr'
+                if var in ['left_whitesurfarea','left_meanthickness', 'left_pialsurfarea']: cnr = 'lhcortexvol_cnr'
+                if var in ['right_whitesurfarea','right_meanthickness', 'right_pialsurfarea']: cnr = 'rhcortexvol_cnr'
+                #if f == 'brainstem.csv': cnr = 'brain-stem_cnr'
+                if f == 'lhpcsub.csv': cnr = 'left-hippocampus_cnr'
+                if f == 'rhpcsub.csv': cnr = 'right-hippocampus_cnr'
+                
+                # center age and etiv
+                meanCNR = pd.read_csv(model_path + f + '/CNR_regions/' + var + '.csv')
+                data3['cnr'] = data3[cnr] - meanCNR.iloc[0,0]
+                # center volume and compute squared/cubed and/or interactions with CNR region
+                data3['cnr2'] = data3['cnr']*data3['cnr'] 
+                data3['cnr3'] = data3['cnr']*data3['cnr']*data3['cnr']
+                #print(var)
+                mse = pd.read_csv(model_path + f + '/Models/' + var + '_mse.csv', index_col=None, header=None)
+                mse = mse.loc[0,0]
+                loaded_model = pickle.load(open(model_path + f + '/Models/' + var + '.sav', 'rb'))
+                pred_list = pd.Series(pd.read_csv(model_path + f + '/Models/' + var + '.csv').columns)
+                x_select = data3.copy()
+                x_select = x_select.loc[:,pred_list]    
+                pred = loaded_model.predict(x_select)
+                pred = pd.DataFrame(pred, columns=[str(var) + '_pred']).set_index(x_select.index)
+                # add to dataset 
+                pred_data = pd.merge(pred_data, pred, how='outer', left_index=True, right_index=True)
+                # compute z scores
+                z_data[str(var) + '_z'] = (pred_data[var] - pred_data[str(var) + '_pred']) / np.sqrt(mse)
+            
+               
+            z_data = z_data.drop(labels=region_list, axis=1)
+            z_data.columns = z_data.columns.str.replace(r'_z$', '', regex=True)
+            z_data.to_csv(outputpath + 'normative_z_scores/' + f)
+            pred_data = pred_data.drop(labels=region_list, axis=1)
+            pred_data.columns = pred_data.columns.str.replace(r'_z$', '', regex=True)
+            #pred_data.to_csv(outputpath + 'pred_scores/' + f)
+            if verbose == 'on': print('Normative Z scores for ' + f + ' saved in ', outputpath + 'normative_z_scores/')
+        except: pass
 
-    if f == 'aseg.csv':
-        aseg = pd.read_csv(outputpath + 'normative_z_scores/aseg.csv')
-        aseg.to_csv(outputpath + 'normative_z_scores/aseg.csv', index=False)
+#    if f == 'aseg.csv':
+#        aseg = pd.read_csv(outputpath + 'normative_z_scores/aseg.csv')
+#        aseg.to_csv(outputpath + 'normative_z_scores/aseg.csv', index=False)
 
 
 

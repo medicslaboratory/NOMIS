@@ -11,6 +11,7 @@ import pickle
 import warnings as wn
 import nibabel as nib
 import numpy.ma as ma
+pd.options.display.precision = 10
 
 def regionf(data, value):
     string = ""
@@ -117,14 +118,14 @@ def CNR(data, region=["cortex", "subcortical"], mean='', sd='_sd'):
     return data
 
 
-def get_FS_stats(csv, path_FS, outputpath, current_path, atlaslist, fsfilelist, verbose='on', warn='off', names=['StructName', 'NumVert', 'SurfArea', 'GrayVol', 'ThickAvg', 'ThickStd', 'MeanCurv', 'GausCurv', 'FoldInd', 'CurvInd'], colnames=(['NumVert', 'SurfArea', 'GrayVol', 'ThickAvg', 'ThickStd', 'MeanCurv', 'GausCurv', 'FoldInd', 'CurvInd'], ['NumVert', 'SurfArea', 'GrayVol', 'ThickAvg', 'ThickStd', 'MeanCurv', 'GausCurv', 'FoldInd', 'CurvInd'])):
+def get_FS_stats(csv, path_FS, outputpath, current_path, version, atlaslist, fsfilelist, verbose='on', warn='off', names=['StructName', 'NumVert', 'SurfArea', 'GrayVol', 'ThickAvg', 'ThickStd', 'MeanCurv', 'GausCurv', 'FoldInd', 'CurvInd'], colnames=(['NumVert', 'SurfArea', 'GrayVol', 'ThickAvg', 'ThickStd', 'MeanCurv', 'GausCurv', 'FoldInd', 'CurvInd'], ['NumVert', 'SurfArea', 'GrayVol', 'ThickAvg', 'ThickStd', 'MeanCurv', 'GausCurv', 'FoldInd', 'CurvInd'])):
     if warn == 'off': wn.filterwarnings("ignore")
     if verbose == 'on': print('Collecting FreeSurfer 6 stats')
     for atlas in atlaslist:
         lbigoutput = pd.DataFrame()
         rbigoutput = pd.DataFrame()
         for subject in csv['id']:
-            if verbose == 'on': print(atlas, subject)
+            #if verbose == 'on': print(atlas, subject)
             try:
                 left = pd.read_csv(path_FS + subject + "/stats/lh." + atlas + ".stats", comment='#', delim_whitespace=True, header=None, index_col=0, names=names)
                 loutput = pd.Series()
@@ -161,8 +162,9 @@ def get_FS_stats(csv, path_FS, outputpath, current_path, atlaslist, fsfilelist, 
             rbigoutput.columns = rbigoutput.columns.str.lower()
             if 'pial' in atlas: rbigoutput = rbigoutput.filter(regex='surfarea')
             rbigoutput.to_csv(outputpath + "raw_scores/" + 'rh.' + atlas + '.csv', index_label='id')
-    
+
     # aseg and wmparc
+    voxelsize = pd.DataFrame()
     bigaseg = pd.DataFrame()
     bigaseg2 = pd.DataFrame()
     bigwmparc = pd.DataFrame()
@@ -172,6 +174,10 @@ def get_FS_stats(csv, path_FS, outputpath, current_path, atlaslist, fsfilelist, 
     biglhpcsub = pd.DataFrame()
     nameaseg = ['Index', 'SegId', 'NVoxels', 'Volume_mm3', 'StructName', 'normMean', 'normStdDev', 'normMin', 'normMax', 'normRange']
     for subject in csv['id']:
+        # get voxel size 
+        t1o = nib.load(path_FS + subject + '/mri/orig/001.mgz')
+        voxel = [t1o.header.get_zooms()[0]*t1o.header.get_zooms()[1]*t1o.header.get_zooms()[2]]
+        voxelsize = voxelsize.append(pd.Series(voxel, name=subject, index=['voxel']))
         # aseg file
         asegoutput = pd.Series()
         try:
@@ -319,62 +325,85 @@ def get_FS_stats(csv, path_FS, outputpath, current_path, atlaslist, fsfilelist, 
     
     if not bigaseg2.empty:
         bigaseg2.columns = bigaseg2.columns.str.lower()
-        # add etiv and surfaceholes to csv and drop it from extracted file
+        # add etiv, surfaceholes and voxel size to csv 
         etiv = bigaseg2[['etiv', 'surfaceholes']]
+        # log surface holes
+        etiv['surfaceholes'] = np.log(etiv['surfaceholes'])
         csv = pd.merge(etiv, csv, how='right', left_index=True, right_on=['id'])
+        csv = pd.merge(voxelsize, csv, how='right', left_index=True, right_on=['id'])
+        csv.set_index(['id'], inplace=True)
+        csv.to_csv(outputpath + 'raw_scores/csv.csv')
         bigaseg2.to_csv(outputpath + 'raw_scores/aseg_bigregions.csv', index_label='id')
         
     if not bigwmparc.empty:
         bigwmparc.columns = bigwmparc.columns.str.lower()
         bigwmparc.to_csv(outputpath + 'raw_scores/wmparc.csv', index_label='id')  
     
-    if verbose == 'on': print('FreeSurfer 6 data collected')
+    #if verbose == 'on': print('FreeSurfer 6 data collected')
     if verbose == 'on': print('Coding variables')
-    # center age and etiv
+
+    # center age and etiv and select Z score version
     meanage = pd.read_csv(current_path + '/bin/meanage.csv', index_col=None, header=None)
     meanetiv = pd.read_csv(current_path + '/bin/meanetiv.csv', index_col=None, header=None)
     meansurfaceholes = pd.read_csv(current_path + '/bin/meansurfaceholes.csv', index_col=None, header=None)
+
+    adjlist = 'intra-cranial volume, scanner characteristics and image quality'
+    if 'sex' in csv.columns: adjlist = 'sex, ' + adjlist
+    if 'age' in csv.columns: adjlist = 'age, ' + adjlist
+
+    if 'sex' not in csv.columns: csv['sex'] = 'F'
+    if 'age' not in csv.columns: csv['age'] = meanage.loc[0,0]
+
+
+    print('Normative Z scores are adjusted for ' + adjlist)
+
     # calculate power IVs
     listenumvar = [('age', meanage), ('etiv', meanetiv), ('surfaceholes', meansurfaceholes)]
     for c, m in listenumvar:
-        csv[c] = csv[c] - m.loc[0,0]
-        c3 = c + "3"
-        c2 = c + "2"
-        print(c, c2, c3)
-        csv[c3] = csv[c] * csv[c] * csv[c]
-        csv[c2] = csv[c] * csv[c]
+        try:
+            csv[c] = csv[c] - m.loc[0,0]
+            c3 = c + "3"
+            c2 = c + "2"
+            #print(c, c2, c3)
+            csv[c3] = csv[c] * csv[c] * csv[c]
+            csv[c2] = csv[c] * csv[c]
+        except: pass
         
     # categorical variables
+    try:
+        csv.loc[(csv['sex'].str.lower() == 'f'), 'sex_m'] = 0    
+        csv.loc[(csv['sex'].str.lower() == 'm'), 'sex_m'] = 1    
+        csv = csv.drop(['sex'], axis=1)
+    except: pass
     csv.loc[(csv['mfs'] == 1.5), 'mfs_15'] = 1    
     csv.loc[(csv['mfs'] == 3), 'mfs_15'] = 0    
-    csv.loc[(csv['sex'].str.lower() == 'f'), 'sex_m'] = 0    
-    csv.loc[(csv['sex'].str.lower() == 'm'), 'sex_m'] = 1    
     csv.loc[(csv['manufacturer'].str.lower() != 'philips'), 'manufacturer_philips'] = 0    
     csv.loc[(csv['manufacturer'].str.lower() == 'philips'), 'manufacturer_philips'] = 1    
     csv.loc[(csv['manufacturer'].str.lower() != 'ge'), 'manufacturer_ge'] = 0    
     csv.loc[(csv['manufacturer'].str.lower() == 'ge'), 'manufacturer_ge'] = 1    
-    csv = csv.drop(['sex', 'manufacturer', 'mfs'], axis=1)
+    csv = csv.drop(['manufacturer', 'mfs'], axis=1)
         
     # interactions
-    csv['age_x_etiv'] = csv['age'] * csv['etiv']
-    csv['age_x_sex_m'] = csv['age'] * csv['sex_m']
-    csv['etiv_x_sex_m'] = csv['sex_m'] * csv['etiv']
-    csv['etiv_x_manufacturer_philips'] = csv['manufacturer_philips'] * csv['etiv']
-    csv['etiv_x_manufacturer_ge'] = csv['manufacturer_ge'] * csv['etiv']
-    
+    try: csv['age_x_etiv'] = csv['age'] * csv['etiv']
+    except: pass
+    try: csv['age_x_sex_m'] = csv['age'] * csv['sex_m']
+    except: pass
+    try: csv['etiv_x_sex_m'] = csv['sex_m'] * csv['etiv']
+    except: pass
     csv['etiv_x_mfs_15'] = csv['mfs_15'] * csv['etiv']
     csv['mfs_15_x_manufacturer_philips'] = csv['manufacturer_philips'] * csv['mfs_15']
     csv['mfs_15_x_manufacturer_ge'] = csv['manufacturer_ge'] * csv['mfs_15']
     
-    if verbose == 'on': print('Variables coding done')
-    
+    #if verbose == 'on': print('Variables coding done')
+    csv.to_csv(outputpath + 'raw_scores/csv_in.csv')
     ### Calculate Z scores
     data = csv  
-    data = data.set_index('id')
+    try: data = data.set_index('id')
+    except: pass
     fslist = pd.read_csv(current_path + '/bin/fsvarlist.csv')
     
     for f in fsfilelist:
-        if verbose == 'on': print(f)
+        #if verbose == 'on': print(f)
         try:
             FSdata = pd.read_csv(outputpath + '/raw_scores/' + f, index_col=0)
             FSdata.columns = FSdata.columns.str.lower()
@@ -394,7 +423,7 @@ def get_FS_stats(csv, path_FS, outputpath, current_path, atlaslist, fsfilelist, 
             data2 = pd.merge(data, FSdata, how='inner', left_index=True, right_index=True, suffixes=('', '_y'))
             data2.drop(data2.filter(regex='_y$').columns.tolist(),axis=1, inplace=True)
             # add CNR regions
-            if any(x in f for x  in ['aseg', 'exvivo', 'wm', 'brainstem', 'hpcsub']) == False:
+            if any(x in f for x in ['aseg', 'exvivo', 'wm', 'brainstem', 'hpcsub']) == False:
                 if 'pialDKT' in f : ff = f.replace('pialDKT', 'DKTatlas')
                 else: ff = f.replace('.pial', '')
                 CNRdata = pd.read_csv(outputpath + 'CNR/' + ff, index_col=0, na_values=['--'])
@@ -445,15 +474,15 @@ def get_FS_stats(csv, path_FS, outputpath, current_path, atlaslist, fsfilelist, 
             z_data = z_data.drop(labels=region_list, axis=1)
             z_data.columns = z_data.columns.str.replace(r'_z$', '', regex=True)
             z_data.to_csv(outputpath + 'normative_z_scores/' + f)
-            pred_data = pred_data.drop(labels=region_list, axis=1)
-            pred_data.columns = pred_data.columns.str.replace(r'_z$', '', regex=True)
+            #pred_data = pred_data.drop(labels=region_list, axis=1)
+            #pred_data.columns = pred_data.columns.str.replace(r'_z$', '', regex=True)
             #pred_data.to_csv(outputpath + 'pred_scores/' + f)
-            if verbose == 'on': print('Normative Z scores for ' + f + ' saved in ', outputpath + 'normative_z_scores/')
-        except: pass
+            if verbose == 'on': print(f + ' normative Z scores were saved in ', outputpath + 'normative_z_scores/')
+            
+        except: 
+            print('There was problem. Normative data for ' + f + ' were not saved')
+            pass
 
-#    if f == 'aseg.csv':
-#        aseg = pd.read_csv(outputpath + 'normative_z_scores/aseg.csv')
-#        aseg.to_csv(outputpath + 'normative_z_scores/aseg.csv', index=False)
 
 
 

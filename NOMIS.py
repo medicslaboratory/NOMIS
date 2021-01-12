@@ -50,6 +50,11 @@ csv = csv1.dropna()
 missing = [x for x in csv1['id'].tolist() if x not in csv['id'].tolist()]
 print(len(missing), 'participants had missing values in the csv file:', missing)
 
+# variables list
+version = 'hi' 
+if 'sex' in csv.columns: version = 's' + version
+if 'age' in csv.columns: version = 'a' + version
+
 path_FS = args.subject_dir
 path_FS = path_FS + '/'
 
@@ -110,7 +115,9 @@ if verbose == 'on': print('Contrast-to-noise ratio computed')
 
 atlaslist=[mainname, mainpial, 'BA_exvivo',]
 fsfilelist=['aseg_bigregions.csv', 'aseg.csv', 'brainstem.csv', 'lhpcsub.csv', 'rhpcsub.csv', 'lh.' + mainname + '.csv', 'rh.' + mainname + '.csv', 'lh.BA_exvivo.csv', 'rh.BA_exvivo.csv', 'wmparc.csv', 'lh.' + mainpial + '.csv', 'rh.' + mainpial + '.csv',]
-NOMIS_func.get_FS_stats(csv, path_FS, outputpath, current_path, atlaslist, fsfilelist, verbose=verbose, warn=warnings)
+NOMIS_func.get_FS_stats(csv, path_FS, outputpath, current_path, version, atlaslist, fsfilelist, verbose=verbose, warn=warnings)
+
+
 
 
 

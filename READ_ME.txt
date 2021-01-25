@@ -24,6 +24,7 @@ This tool was built on MacOS using Python 3.7.4 with the following modules:
  numpy version 1.17.2
  pandas version 0.25.1
  pickle version 4.0
+ sklearn version 0.21.3
  
 
  For questions, email the author at: olivier.potvin at cervo.ulaval.ca

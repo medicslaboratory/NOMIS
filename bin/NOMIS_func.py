@@ -70,7 +70,6 @@ def FS6_CNR_peratlas(pt, atlas, path_FS, regions_numbers="default", image='brain
         columnsnames = ['id']
         data2 = []
         data2.extend([i])
-        
         for name, num in bigcnr:
             try:
                 r = regionf(labels_data, num)
@@ -78,7 +77,6 @@ def FS6_CNR_peratlas(pt, atlas, path_FS, regions_numbers="default", image='brain
                 data2.extend([np.mean(t1_data_masked), np.std(t1_data_masked, ddof=1)])    
                 columnsnames.extend([name, name + "_sd"])
             except: pass
-        
         for j in range(len(regions_numbers)):
             try:
                 #print(regions_names[j])
@@ -87,7 +85,6 @@ def FS6_CNR_peratlas(pt, atlas, path_FS, regions_numbers="default", image='brain
                 data2.extend([np.mean(t1_data_masked), np.std(t1_data_masked, ddof=1)])    
                 columnsnames.extend([regions_names[j], regions_names[j]+ "_sd"])
             except: pass
-        
         data.append(data2)
         bigoutput = pd.DataFrame(data)
         bigoutput.columns = columnsnames
@@ -403,7 +400,7 @@ def get_FS_stats(csv, path_FS, outputpath, current_path, version, atlaslist, fsf
     fslist = pd.read_csv(current_path + '/bin/fsvarlist.csv')
     
     for f in fsfilelist:
-        #if verbose == 'on': print(f)
+        #print(f)
         try:
             FSdata = pd.read_csv(outputpath + '/raw_scores/' + f, index_col=0)
             FSdata.columns = FSdata.columns.str.lower()
@@ -474,25 +471,9 @@ def get_FS_stats(csv, path_FS, outputpath, current_path, version, atlaslist, fsf
             z_data = z_data.drop(labels=region_list, axis=1)
             z_data.columns = z_data.columns.str.replace(r'_z$', '', regex=True)
             z_data.to_csv(outputpath + 'normative_z_scores/' + f)
-            #pred_data = pred_data.drop(labels=region_list, axis=1)
-            #pred_data.columns = pred_data.columns.str.replace(r'_z$', '', regex=True)
-            #pred_data.to_csv(outputpath + 'pred_scores/' + f)
             if verbose == 'on': print(f + ' normative Z scores were saved in ', outputpath + 'normative_z_scores/')
             
         except: 
             print('There was problem. Normative data for ' + f + ' were not saved')
             pass
-
-
-
-
-
-
-
-
-
-
-
-
-
 

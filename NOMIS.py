@@ -5,7 +5,7 @@ Created on Tue Nov 24 08:55:36 2020
 
 @author: olivierp
 """
-
+import sys
 import argparse
 parser=argparse.ArgumentParser()
 #required
@@ -33,6 +33,10 @@ from bin import NOMIS_func
 if verbose == 'on': 
     import platform
     print('python version ', platform.python_version())
+    if int(platform.python_version()[0]) == 2: 
+        print('python 3 is required')
+        print('quit')
+        quit()
     print('argparse version ', argparse.__version__)
     import numpy as np
     print('numpy version ', np.__version__)
@@ -41,7 +45,8 @@ if verbose == 'on':
     import nibabel as nib
     print('nibabel version ', nib.__version__)
     print('pandas version ', pd.__version__)
-
+    import sklearn
+    print('sklearn version ', sklearn.__version__)
 
 current_path = os.path.dirname(os.path.realpath(__file__))
 path_csv = args.csv

@@ -12,7 +12,8 @@ NOMIS computes normative Z-score effect size with a mean of 0 and a standard dev
 * The script automatically choose the Z-score version according to the information available in the csv input file.
 
  If you use the normative values, please cite and refer to the following publication:
- Potvin O., Dieumegarde L., and Duchesne S. (submitted). NOMIS: Quantifying morphometry deviation from the normality over the lifetime of the adult human brain.
+ Potvin O., Dieumegarde L., and Duchesne S. (2021) NOMIS: Quantifying morphometry deviation from the normality over the lifetime of the adult human brain. bioRxiv 2021.01.25.428063
+ https://doi.org/10.1101/2021.01.25.428063
 
  Please note that this calculator is NOT approved for any form of clinical use.
  These normative values are aimed to be applied on FreeSurfer 6.0 output already processed with fully-automated directive parameters: “recon-all -all” command without any manual or expert flag option (https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all).

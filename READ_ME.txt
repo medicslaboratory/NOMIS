@@ -1,12 +1,13 @@
-#################################### INSTRUCTIONS #####################################
-
-@2021 MEDICS LABORATORY - CERVO BRAIN RESEARCH CENTER - UNIVERSITE LAVAL
-
-MEDICS Normative morphometric data calculator for FreeSurfer 6.0 - Version 1.0
 
 >>> Disclaimer
-NOMIS.py is a free tool to compute normative morphometric values for FreeSurfer 6 developed by the MEDICS laboratory at the CERVO Brain Research Center / Universite Laval, Quebec, Canada.
+Copyright 2021 Olivier Potvin, Louis Dieumegarde, Simon Duchesne
+MEDICS LABORATORY - CERVO BRAIN RESEARCH CENTRE - UNIVERSITE LAVAL
 
+NOMIS is a free tool to compute normative morphometric values for FreeSurfer 6 developed by the MEDICS laboratory at the CERVO Brain Research Centre / Universite Laval, Quebec, Canada.
+
+NOMIS is licensed under a modified BSD. Permission to use, copy, modify, and distribute this software and its documentation for any purpose and without fee is hereby granted, provided that the above copyright notice appear in all copies. The author make no representations about the suitability of this software for any purpose. It is provided "as is" without express or implied warranty.
+
+>>> Instructions
 NOMIS computes normative Z-score effect size with a mean of 0 and a standard deviation of 1. Depending on the user need, there are four versions of Z-score adjusted on different sets of variables. All versions includes head size, image quality and scanner characteristics. The full version also includes age and sex while the other 3 versions are variants: with age, with sex, or without age and sex. 
 
 * The script automatically choose the Z-score version according to the information available in the csv input file.
@@ -15,9 +16,8 @@ NOMIS computes normative Z-score effect size with a mean of 0 and a standard dev
  Potvin O., Dieumegarde L., and Duchesne S. (2021) NOMIS: Quantifying morphometry deviation from the normality over the lifetime of the adult human brain. bioRxiv 2021.01.25.428063
  https://doi.org/10.1101/2021.01.25.428063
 
- Please note that this calculator is NOT approved for any form of clinical use.
  These normative values are aimed to be applied on FreeSurfer 6.0 output already processed with fully-automated directive parameters: “recon-all -all” command without any manual or expert flag option (https://surfer.nmr.mgh.harvard.edu/fswiki/recon-all).
- All processed images should have finished without error and the user should verify the the segmentation quality first.
+ All processed images should have finished without error and the user should verify the segmentation quality first.
 
 This tool was built on MacOS using Python 3.7.4 with the following modules: 
  argparse version 1.1

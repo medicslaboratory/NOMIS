@@ -1,3 +1,6 @@
+# NOMIS
+NOrmative Morphometry Image Statistics
+
 >>> Disclaimer
 Copyright 2021 Olivier Potvin, Louis Dieumegarde, Simon Duchesne
 MEDICS LABORATORY - CERVO BRAIN RESEARCH CENTRE - UNIVERSITE LAVAL

@@ -172,7 +172,10 @@ def get_FS_stats(csv, path_FS, outputpath, current_path, version, atlaslist, fsf
     nameaseg = ['Index', 'SegId', 'NVoxels', 'Volume_mm3', 'StructName', 'normMean', 'normStdDev', 'normMin', 'normMax', 'normRange']
     for subject in csv['id']:
         # get voxel size 
-        t1o = nib.load(path_FS + subject + '/mri/orig/001.mgz')
+        if '.long.' in subject: 
+            print('Longitudinal pipeline detected. Looking for original image in', subject.split('.long.')[0])
+            t1o = nib.load(path_FS + subject.split('.long.')[0]  + '/mri/orig/001.mgz')
+        else: t1o = nib.load(path_FS + subject + '/mri/orig/001.mgz')
         voxel = [t1o.header.get_zooms()[0]*t1o.header.get_zooms()[1]*t1o.header.get_zooms()[2]]
         voxelsize = voxelsize.append(pd.Series(voxel, name=subject, index=['voxel']))
         # aseg file

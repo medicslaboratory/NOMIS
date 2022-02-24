@@ -1,0 +1,5 @@
+Medulla 5307.469278
+Pons 15504.862215
+SCP 209.203300
+Midbrain 6238.667178
+Whole_brainstem 27260.201970

@@ -3,6 +3,7 @@ NOrmative Morphometry Image Statistics
 
 
 >>> Disclaimer
+>>> 
 Copyright 2021 Olivier Potvin, Louis Dieumegarde, Simon Duchesne
 MEDICS LABORATORY - CERVO BRAIN RESEARCH CENTRE - UNIVERSITE LAVAL
 
@@ -10,8 +11,9 @@ NOMIS is a free tool to compute normative morphometric values for FreeSurfer 6 d
 
 NOMIS is licensed under a modified BSD. Permission to use, copy, modify, and distribute this software and its documentation for any purpose and without fee is hereby granted, provided that the above copyright notice appear in all copies. The author make no representations about the suitability of this software for any purpose. It is provided "as is" without express or implied warranty.
 
->>> Instructions
-NOMIS computes normative Z-score effect size with a mean of 0 and a standard deviation of 1. Depending on the user need, there are four versions of Z-score adjusted on different sets of variables. All versions includes head size and image quality. The full version also includes age and sex while the other 3 versions are variants: with age, with sex, or without age and sex. 
+>>> 
+NOMIS computes normative Z-score effect size with a mean of 0 and a standard deviation of 1. Depending on the user need, there are four versions of Z-score adjusted on different sets of variables. All versions includes head size and image quality. The full version also includes age and sex while the other 3 versions are variants: with age, with sex, or without age and sex. Please note that in order to avoid as much as possible potential biases that could be introduced by differences in participants’ characteristics at each site/scanner, NOMIS solely uses information from the images themselves (CNR and surface holes) instead of magnetic field strength and scanner vendor.
+
 
 * The script automatically choose the Z-score version according to the information available in the csv input file.
 
